@@ -11,9 +11,7 @@ import base64
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
-# ==========================================
-# 1. CARGA DOS DADOS E CONFIGURAÇÕES GERAIS
-# ==========================================
+# Carregando os dados e ajustando o visual geral dos gráficos do matplotlib
 df = pd.read_csv("mercado_entretenimento.csv")
 
 plt.style.use('dark_background')
@@ -37,7 +35,7 @@ matplotlib.rcParams.update({
 })
 
 def fig_to_uri(fig):
-    """Transforma o Matplotlib em Base64 para o Dash"""
+    # Converte a figura gerada pro formato base64 pra gente conseguir jogar no Dash
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight', dpi=150, facecolor='#1e293b')
     buf.seek(0)
@@ -45,9 +43,7 @@ def fig_to_uri(fig):
     plt.close(fig)
     return f"data:image/png;base64,{encoded}"
 
-# ==========================================
-# 2. FUNÇÕES PARA GERAR GRÁFICOS ESTÁTICOS (Partes 1 e 3)
-# ==========================================
+# Funções para criar os gráficos que não mudam
 def criar_grafico_parte1(df):
     generos_alvo = ["Ação", "Terror", "Drama", "Comédia"]
     Genero_por_NomeItem = df[df["Nome_Item"].isin(generos_alvo)]
@@ -148,13 +144,11 @@ def criar_grid_contexto_p3(df):
     fig.suptitle("Grid de Contexto — Macro & Micro View  |  Streaming 2010–2025", fontsize=20, fontweight='bold', color='#f8fafc', y=0.96)
     return fig_to_uri(fig)
 
-# Gera imagens base64 iniciais
+# Já deixa os gráficos gerados de antemão
 imagem_parte1_base64 = criar_grafico_parte1(df)
 imagem_grid_base64 = criar_grid_contexto_p3(df)
 
-# ==========================================
-# 3. INICIALIZAÇÃO DO DASH E LAYOUT UNIFICADO
-# ==========================================
+# Criação do app Dash e do layout da página
 app = dash.Dash(__name__)
 app.title = "Mercado de Entretenimento - Dashboard Integrado"
 
@@ -164,7 +158,7 @@ app.layout = html.Div(style={'backgroundColor': '#0f172a', 'padding': '30px', 'f
     
     html.H1("Dashboard Integrado - Mercado de Entretenimento", style={'color': '#f8fafc', 'textAlign': 'center', 'marginBottom': '40px'}),
     
-    # ─── [PARTE 1] ───
+    # Primeiro bloco: impacto geral na bilheteria
     html.Div([
         html.H2("Parte 1: Impacto da Pandemia e Streaming na Bilheteria", style={'color': '#f8fafc', 'marginBottom': '20px'}),
         html.Img(
@@ -173,7 +167,7 @@ app.layout = html.Div(style={'backgroundColor': '#0f172a', 'padding': '30px', 'f
         )
     ], style={'marginBottom': '50px', 'backgroundColor': '#1e293b', 'padding': '20px', 'borderRadius': '12px'}),
     
-    # ─── [PARTE 2] ───
+    # Segundo bloco: gráfico interativo com filtros
     html.Div([
         html.H2("Parte 2: Ponto de Virada - Cinema vs Streaming", style={'color': '#f8fafc', 'marginBottom': '20px', 'textAlign': 'center'}),
         
@@ -201,7 +195,7 @@ app.layout = html.Div(style={'backgroundColor': '#0f172a', 'padding': '30px', 'f
         
     ], style={'marginBottom': '50px', 'backgroundColor': '#1e293b', 'padding': '20px', 'borderRadius': '12px'}),
     
-    # ─── [PARTE 3] ───
+    # Terceiro bloco: os pequenos gráficos de contexto
     html.Div([
         html.H2("Parte 3: O Grid de Contexto (Macro & Micro View - Streaming)", style={'color': '#f8fafc', 'marginBottom': '20px'}),
         html.Img(
@@ -211,9 +205,7 @@ app.layout = html.Div(style={'backgroundColor': '#0f172a', 'padding': '30px', 'f
     ], style={'marginBottom': '50px', 'backgroundColor': '#1e293b', 'padding': '20px', 'borderRadius': '12px'})
 ])
 
-# ==========================================
-# 4. CALLBACKS (Parte 2)
-# ==========================================
+# Callback para fazer o dropdown da região atualizar o gráfico e os números
 @app.callback(
     [
         Output('plot-imagem-p2', 'src'),
@@ -226,6 +218,7 @@ app.layout = html.Div(style={'backgroundColor': '#0f172a', 'padding': '30px', 'f
 def update_graph_p2(regiao):
     df_regiao = df[df['Regiao'] == regiao]
     
+    # Separa as receitas de cinema e streaming e soma por ano
     df_cinema = df_regiao[df_regiao['Tipo'] == 'Cinema'].groupby('Ano')['Receita_Bilhoes'].sum().reset_index()
     df_streaming = df_regiao[df_regiao['Tipo'] == 'Streaming'].groupby('Ano')['Receita_Bilhoes'].sum().reset_index()
     
@@ -251,6 +244,7 @@ def update_graph_p2(regiao):
     intersection_y = None
     intersection_year_text = None
     
+    # Encontra o ponto exato onde a linha de streaming passa a do cinema
     for i in range(len(anos) - 1):
         x1, x2 = anos[i], anos[i+1]
         c1, c2 = rev_cinema[i], rev_cinema[i+1]
@@ -311,8 +305,6 @@ def update_graph_p2(regiao):
     intersection_ret = intersection_year_text if intersection_year_text else "N/A"
     return fig_to_uri(fig), intersection_ret, pico_cinema_text, pico_streaming_text
 
-# ==========================================
-# EXECUÇÃO DO SERVIDOR (Roda no VS Code)
-# ==========================================
+# Roda o app localmente pra gente ver no navegador
 if __name__ == '__main__':
     app.run(debug=True)
